@@ -9,6 +9,7 @@ import asyncio
 import datetime
 import json
 import logging
+import re
 import sys
 import time
 from pathlib import Path
@@ -314,7 +315,8 @@ async def handle_scan(args: argparse.Namespace, config: AppConfig) -> int:
             # Handle config reporting directories
             out_dir = Path(config.reporting.output_dir)
             out_dir.mkdir(parents=True, exist_ok=True)
-            domain_safe = target_url.replace("://", "_").replace("/", "_").replace(".", "_")
+            domain_safe = re.sub(r'[^a-zA-Z0-9_-]', '_', target_url)
+            domain_safe = re.sub(r'_+', '_', domain_safe).strip('_')
             ts_safe = timestamp.replace(":", "-")
             name_base = config.reporting.report_name_template.format(
                 target=domain_safe, timestamp=ts_safe

@@ -21,7 +21,7 @@ PROFILES: dict[str, dict[str, Any]] = {
     "fast": {
         "core": {"rate_limit": 50, "max_connections": 100},
         "modules": {
-            "security": {"enabled": True},
+            "security": {"enabled": True, "sqli_check": False},
             "seo": {"enabled": False},
             "waf": {"enabled": True},
             "performance": {"enabled": True, "use_browser": False},
@@ -33,7 +33,7 @@ PROFILES: dict[str, dict[str, Any]] = {
     "default": {
         "core": {"rate_limit": 15, "max_connections": 30},
         "modules": {
-            "security": {"enabled": True},
+            "security": {"enabled": True, "sqli_check": True},
             "seo": {"enabled": True},
             "waf": {"enabled": True},
             "performance": {"enabled": True, "use_browser": False},
@@ -45,7 +45,7 @@ PROFILES: dict[str, dict[str, Any]] = {
     "full": {
         "core": {"rate_limit": 10, "max_connections": 10},
         "modules": {
-            "security": {"enabled": True},
+            "security": {"enabled": True, "sqli_check": True},
             "seo": {"enabled": True},
             "waf": {"enabled": True},
             "performance": {"enabled": True, "use_browser": True},
@@ -103,6 +103,8 @@ class SecurityModuleConfig(BaseModel):
     require_headers: list[str] = Field(
         default_factory=lambda: ["Content-Security-Policy", "Strict-Transport-Security"]
     )
+    sqli_check: bool = Field(default=True)
+    sqli_timeout: int = Field(default=8, ge=1, le=30)
 
 
 class SeoModuleConfig(BaseModel):

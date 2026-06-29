@@ -146,6 +146,35 @@ webpulse config set crawler.max_pages 20
 
 ---
 
+## 💬 Kaydus Interactive Agent REPL
+
+**Kaydus** is a premium, retro-themed terminal REPL console built as an interactive frontend wrapper for WebPulse. It provides real-time command auto-suggestions, a system specification dashboard, and seamless multi-module audits directly inside an overlay window.
+
+### Key Features
+* **🖥️ System Info Header**: Displays OS details, CPU architecture, core count, and WebPulse authentication status at startup.
+* **💡 Overlay Autocomplete**: Live suggestions appear in an ASCII suggestion box right above the prompt line, updating instantly without pushing terminal lines or causing screen scrolling desynchronization.
+* **⌨️ Tab Completion**: Cycle or autocomplete the first suggested command automatically with the `Tab` key.
+
+### Launching Kaydus REPL
+Simply execute `kaydus` (or call `python -m kaydus.cli` if not installed in PATH):
+```bash
+kaydus
+```
+
+### REPL Commands
+Inside Kaydus, you can execute standard commands prefixed with `/` or paste any target URL to run a comprehensive scan:
+* `/help` - View help documentation and commands list.
+* `/exit` - Quit the interactive session.
+* `/model` - Manage or list active target websites.
+* `/seo <url>` - Run SEO analyzer on a specific URL.
+* `/ssl <url>` - Run SSL analyzer on a specific URL.
+* `/http <url>` - Run HTTP analyzer on a specific URL.
+* `/security <url>` - Run Security analyzer on a specific URL.
+* `/scan <url>` - Run a complete website audit (all modules).
+* `<url>` - Pasting a URL directly runs `/scan` on it.
+
+---
+
 ## 🛡️ Sandboxing & SSRF Protection
 
 ### Zero-Trust SSRF Protection

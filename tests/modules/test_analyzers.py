@@ -196,3 +196,194 @@ async def test_security_analyzer_exposed_files() -> None:
     assert "Exposed Git Repository Directory Detected" in titles
     assert "Exposed System Environment File Detected" in titles
     await client.close()
+
+
+# ── SQL Injection Detection Tests ───────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_sqli_error_based_mysql_detection() -> None:
+    """Verify SQLi error-based detection flags MySQL error in response."""
+    client = AsyncNetworkClient(allow_private_ips=True)
+    client._resolve_host = AsyncMock(return_value=["127.0.0.1"])  # type: ignore
+
+    target_url = "https://example.com/products?id=1"
+
+    # Mock main page request
+    respx.get(target_url).mock(
+        return_value=httpx.Response(200, html="<html><body>Product page</body></html>")
+    )
+
+    # Mock SQLi-injected request returning MySQL error
+    injected_url = "https://example.com/products?id=1%27"
+    respx.get(injected_url).mock(
+        return_value=httpx.Response(
+            200,
+            text="You have an error in your SQL syntax; check the manual that corresponds "
+            "to your MySQL server version for the right syntax to use near ''1''' at line 1",
+        )
+    )
+
+    plugin = SecurityPlugin()
+    await plugin.on_load({"sqli_check": True, "sqli_timeout": 5})
+    target = Target(url=target_url)
+    findings = await plugin.execute(target, client)
+
+    sqli_titles = [f.title for f in findings if "SQL Injection" in f.title]
+    assert len(sqli_titles) >= 1, f"Expected SQLi findings, got titles: {[f.title for f in findings]}"
+    assert any("Error-Based" in t for t in sqli_titles)
+    assert any("MySQL" in t for t in sqli_titles)
+    assert any(f.severity == Severity.CRITICAL for f in findings if "SQL Injection" in f.title)
+    await client.close()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_sqli_error_based_postgresql_detection() -> None:
+    """Verify SQLi error-based detection flags PostgreSQL error in response."""
+    client = AsyncNetworkClient(allow_private_ips=True)
+    client._resolve_host = AsyncMock(return_value=["127.0.0.1"])  # type: ignore
+
+    target_url = "https://example.com/items?category_id=5"
+
+    respx.get(target_url).mock(
+        return_value=httpx.Response(200, html="<html><body>Items</body></html>")
+    )
+
+    # Mock SQLi-injected request returning PostgreSQL error
+    injected_url = "https://example.com/items?category_id=5%27"
+    respx.get(injected_url).mock(
+        return_value=httpx.Response(
+            200,
+            text="ERROR:  syntax error at or near \"'\"\nLINE 1: SELECT * FROM items WHERE category_id=5'\n"
+            "org.postgresql.util.PSQLException: ERROR",
+        )
+    )
+
+    plugin = SecurityPlugin()
+    await plugin.on_load({"sqli_check": True, "sqli_timeout": 5})
+    target = Target(url=target_url)
+    findings = await plugin.execute(target, client)
+
+    sqli_titles = [f.title for f in findings if "SQL Injection" in f.title]
+    assert len(sqli_titles) >= 1
+    assert any("PostgreSQL" in t for t in sqli_titles)
+    await client.close()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_sqli_boolean_blind_detection() -> None:
+    """Verify boolean-blind SQLi detection via response size difference."""
+    client = AsyncNetworkClient(allow_private_ips=True)
+    client._resolve_host = AsyncMock(return_value=["127.0.0.1"])  # type: ignore
+
+    target_url = "https://example.com/news?id=100"
+
+    # Main page
+    respx.get(target_url).mock(
+        return_value=httpx.Response(200, html="<html><body>News article</body></html>")
+    )
+
+    # Boolean-true: returns full page
+    true_url = "https://example.com/news?id=100%27+AND+%271%27%3D%271"
+    respx.get(true_url).mock(
+        return_value=httpx.Response(200, text="<html>" + "A" * 2000 + "</html>")
+    )
+
+    # Boolean-false: returns short/empty page
+    false_url = "https://example.com/news?id=100%27+AND+%271%27%3D%272"
+    respx.get(false_url).mock(
+        return_value=httpx.Response(200, text="<html></html>")
+    )
+
+    plugin = SecurityPlugin()
+    await plugin.on_load({"sqli_check": True, "sqli_timeout": 5})
+    target = Target(url=target_url)
+    findings = await plugin.execute(target, client)
+
+    sqli_titles = [f.title for f in findings if "SQL Injection" in f.title]
+    assert len(sqli_titles) >= 1, f"Expected boolean-blind SQLi finding, got: {sqli_titles}"
+    assert any("Boolean-Based Blind" in t for t in sqli_titles)
+    await client.close()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_sqli_no_false_positive_on_clean_url() -> None:
+    """Verify no SQLi false positives on a clean URL with query parameters."""
+    client = AsyncNetworkClient(allow_private_ips=True)
+    client._resolve_host = AsyncMock(return_value=["127.0.0.1"])  # type: ignore
+
+    target_url = "https://example.com/search?q=hello&page=1"
+
+    # Mock all requests with clean responses (no SQL errors, same response size)
+    def clean_response(request: httpx.Request) -> httpx.Response:  # noqa: ARG001 # type: ignore[type-arg]
+        return httpx.Response(200, text="<html><body>Search results</body></html>")
+
+    respx.route(method="GET", url__startswith="https://example.com/search").mock(
+        side_effect=clean_response
+    )
+
+    plugin = SecurityPlugin()
+    await plugin.on_load({"sqli_check": True, "sqli_timeout": 5})
+    target = Target(url=target_url)
+    findings = await plugin.execute(target, client)
+
+    sqli_titles = [f.title for f in findings if "SQL Injection" in f.title]
+    assert len(sqli_titles) == 0, f"False positive SQLi findings: {sqli_titles}"
+    await client.close()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_sqli_disabled_by_config() -> None:
+    """Verify SQLi checks are skipped when sqli_check is False."""
+    client = AsyncNetworkClient(allow_private_ips=True)
+    client._resolve_host = AsyncMock(return_value=["127.0.0.1"])  # type: ignore
+
+    target_url = "https://example.com/products?id=1"
+
+    # Mock main page
+    respx.get(target_url).mock(
+        return_value=httpx.Response(200, html="<html><body>Product</body></html>")
+    )
+
+    plugin = SecurityPlugin()
+    await plugin.on_load({"sqli_check": False})
+    target = Target(url=target_url)
+    findings = await plugin.execute(target, client)
+
+    sqli_titles = [f.title for f in findings if "SQL Injection" in f.title]
+    assert len(sqli_titles) == 0
+    await client.close()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_sqli_no_query_params() -> None:
+    """Verify SQLi checks gracefully handle URLs with no query parameters."""
+    client = AsyncNetworkClient(allow_private_ips=True)
+    client._resolve_host = AsyncMock(return_value=["127.0.0.1"])  # type: ignore
+
+    target_url = "https://example.com/about"
+
+    respx.get(target_url).mock(
+        return_value=httpx.Response(
+            200,
+            html="<html><body>About page</body></html>",
+            headers={"Content-Security-Policy": "default-src 'self'"},
+        )
+    )
+
+    plugin = SecurityPlugin()
+    await plugin.on_load({"sqli_check": True})
+    target = Target(url=target_url)
+    findings = await plugin.execute(target, client)
+
+    sqli_titles = [f.title for f in findings if "SQL Injection" in f.title]
+    assert len(sqli_titles) == 0
+    # Should still perform header checks (CSP is present → no CSP finding)
+    assert "Missing Content-Security-Policy Header" not in [f.title for f in findings]
+    await client.close()
