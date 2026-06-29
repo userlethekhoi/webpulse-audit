@@ -1,0 +1,10 @@
+name: "webpulse-ssl-analyzer"
+version: "2.0.0"
+description: "Built-in SSL/TLS analyzer module validating certificates expirations, domains matching, and signature parameters."
+author: "WebPulse Core Team"
+license: "MIT"
+category: "ssl"
+priority: 20
+entry_point: "plugin:SslPlugin"
+permissions:
+  network_access: true

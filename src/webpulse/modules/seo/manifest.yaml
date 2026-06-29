@@ -1,0 +1,10 @@
+name: "webpulse-seo-analyzer"
+version: "2.0.0"
+description: "Built-in SEO analyzer module validating page DOM structural elements, meta descriptions, image alt tags, and canonical references."
+author: "WebPulse Core Team"
+license: "MIT"
+category: "seo"
+priority: 40
+entry_point: "plugin:SeoPlugin"
+permissions:
+  network_access: true

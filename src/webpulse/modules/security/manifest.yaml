@@ -1,0 +1,10 @@
+name: "webpulse-security-analyzer"
+version: "2.0.0"
+description: "Built-in security header auditor and sensitive directory leak scanner module."
+author: "WebPulse Core Team"
+license: "MIT"
+category: "security"
+priority: 10
+entry_point: "plugin:SecurityPlugin"
+permissions:
+  network_access: true

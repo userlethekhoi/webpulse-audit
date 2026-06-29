@@ -1,0 +1,10 @@
+name: "webpulse-http-analyzer"
+version: "2.0.0"
+description: "Built-in HTTP analyzer module validating status codes, compressions, redirect traces, and version compatibility."
+author: "WebPulse Core Team"
+license: "MIT"
+category: "http"
+priority: 30
+entry_point: "plugin:HttpPlugin"
+permissions:
+  network_access: true
