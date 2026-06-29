@@ -43,9 +43,7 @@ class BFSWebCrawler:
                 try:
                     self.exclude_regexes.append(re.compile(pattern))
                 except re.error as e:
-                    logger.warning(
-                        f"Invalid crawler exclude pattern regex '{pattern}': {e}"
-                    )
+                    logger.warning(f"Invalid crawler exclude pattern regex '{pattern}': {e}")
 
     async def crawl(self, root_target: Target, client: AsyncNetworkClient) -> list[Target]:
         """Audit target site link trees using BFS.
@@ -123,16 +121,16 @@ class BFSWebCrawler:
                 return False
 
             domain = parsed.netloc.split(":")[0].lower()
-            if not any(
-                domain == d or domain.endswith(f".{d}") for d in self.allowed_domains
-            ):
+            if not any(domain == d or domain.endswith(f".{d}") for d in self.allowed_domains):
                 return False
 
             path_and_query = parsed.path
             if parsed.query:
                 path_and_query += f"?{parsed.query}"
 
-            return not any(rx.search(url) or rx.search(path_and_query) for rx in self.exclude_regexes)
+            return not any(
+                rx.search(url) or rx.search(path_and_query) for rx in self.exclude_regexes
+            )
         except Exception:
             return False
 

@@ -21,9 +21,7 @@ class SeoPlugin(BasePlugin):
             version="2.0.0",
         )
 
-    async def execute(
-        self, target: Target, client: AsyncNetworkClient
-    ) -> list[Finding]:
+    async def execute(self, target: Target, client: AsyncNetworkClient) -> list[Finding]:
         findings: list[Finding] = []
 
         try:

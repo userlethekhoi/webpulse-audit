@@ -178,13 +178,10 @@ class ReportGenerator:
         overall_health_score = round(hs_overall)
 
         # Calculate Risk Score
-        critical_count = sum(
-            1 for f in self.findings if f.severity == Severity.CRITICAL
-        )
+        critical_count = sum(1 for f in self.findings if f.severity == Severity.CRITICAL)
         risk_score = min(
             10.0,
-            ((100.0 - overall_health_score) / 10.0)
-            + max(0.0, float(critical_count) * 1.0),
+            ((100.0 - overall_health_score) / 10.0) + max(0.0, float(critical_count) * 1.0),
         )
         risk_score = round(risk_score, 2)
 

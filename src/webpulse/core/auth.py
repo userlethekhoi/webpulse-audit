@@ -51,18 +51,12 @@ class AuthCoordinator:
         assert self.login_url is not None
 
         try:
-            logger.info(
-                f"Establishing auth session via {self.method} at {self.login_url}..."
-            )
+            logger.info(f"Establishing auth session via {self.method} at {self.login_url}...")
 
             if self.method == "post_json":
-                response = await client.request(
-                    "POST", self.login_url, json=self.credentials
-                )
+                response = await client.request("POST", self.login_url, json=self.credentials)
             elif self.method == "post_form":
-                response = await client.request(
-                    "POST", self.login_url, data=self.credentials
-                )
+                response = await client.request("POST", self.login_url, data=self.credentials)
             else:
                 logger.warning(f"Unsupported auth method: {self.method}")
                 return False
@@ -81,22 +75,16 @@ class AuthCoordinator:
                     res_data = response.json()
                     if isinstance(res_data, dict) and token_name in res_data:
                         self._token_val = str(res_data[token_name])
-                        logger.info(
-                            f"Extracted auth token '{token_name}' from response JSON body."
-                        )
+                        logger.info(f"Extracted auth token '{token_name}' from response JSON body.")
                 except Exception as e:
-                    logger.debug(
-                        f"Response is not valid JSON for token extraction: {e}"
-                    )
+                    logger.debug(f"Response is not valid JSON for token extraction: {e}")
 
                 # 2. Try response cookies
                 if not self._token_val:
                     cookie_val = response.cookies.get(token_name)
                     if cookie_val:
                         self._token_val = cookie_val
-                        logger.info(
-                            f"Extracted auth cookie '{token_name}' from response cookies."
-                        )
+                        logger.info(f"Extracted auth cookie '{token_name}' from response cookies.")
 
             logger.info("Authentication session established successfully.")
             return True

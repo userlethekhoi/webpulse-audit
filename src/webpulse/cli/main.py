@@ -35,10 +35,16 @@ def create_parser() -> argparse.ArgumentParser:
         description="WebPulse - Automated defensive website auditing and security scanner.",
     )
     parser.add_argument(
-        "-v", "--verbose", action="count", default=0, help="Increase output logging verbosity (-v, -vv)."
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Increase output logging verbosity (-v, -vv).",
     )
     parser.add_argument(
-        "--debug", action="store_true", help="Enable full traceback prints and disable interception."
+        "--debug",
+        action="store_true",
+        help="Enable full traceback prints and disable interception.",
     )
     parser.add_argument(
         "--no-color", action="store_true", help="Disable all ANSI colors in console output."
@@ -49,9 +55,7 @@ def create_parser() -> argparse.ArgumentParser:
     # 1. SCAN Subcommand
     scan_parser = subparsers.add_parser("scan", help="Audit a target website URL.")
     scan_parser.add_argument("target_url", help="The target URL or domain to audit.")
-    scan_parser.add_argument(
-        "-o", "--output", help="Write report to the specified file path."
-    )
+    scan_parser.add_argument("-o", "--output", help="Write report to the specified file path.")
     scan_parser.add_argument(
         "-f",
         "--format",
@@ -59,7 +63,11 @@ def create_parser() -> argparse.ArgumentParser:
         help="Report format type (console, json, html, markdown). Comma-separated list supported.",
     )
     scan_parser.add_argument(
-        "-p", "--profile", default="default", choices=["fast", "default", "full"], help="Scanning preset intensity."
+        "-p",
+        "--profile",
+        default="default",
+        choices=["fast", "default", "full"],
+        help="Scanning preset intensity.",
     )
     scan_parser.add_argument(
         "-r", "--rate-limit", type=int, help="Limit maximum requests per second."
@@ -67,27 +75,21 @@ def create_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument(
         "-c", "--concurrency", type=int, help="Limit maximum concurrent connections."
     )
-    scan_parser.add_argument(
-        "--timeout", type=int, help="Global connection timeout in seconds."
-    )
+    scan_parser.add_argument("--timeout", type=int, help="Global connection timeout in seconds.")
     scan_parser.add_argument(
         "--use-browser", action="store_true", help="Enable browser headless checks."
     )
     scan_parser.add_argument(
-        "--yes-i-have-authorization", action="store_true", help="Acknowledge stress scan authorization."
+        "--yes-i-have-authorization",
+        action="store_true",
+        help="Acknowledge stress scan authorization.",
     )
     scan_parser.add_argument(
         "--crawl", action="store_true", help="Enable crawler link discovery traversal."
     )
-    scan_parser.add_argument(
-        "--max-depth", type=int, help="Crawler recursion limit."
-    )
-    scan_parser.add_argument(
-        "--max-pages", type=int, help="Crawler total target limit."
-    )
-    scan_parser.add_argument(
-        "--auth-config", help="Path to credentials session file."
-    )
+    scan_parser.add_argument("--max-depth", type=int, help="Crawler recursion limit.")
+    scan_parser.add_argument("--max-pages", type=int, help="Crawler total target limit.")
+    scan_parser.add_argument("--auth-config", help="Path to credentials session file.")
     scan_parser.add_argument(
         "--allow-private-ips", action="store_true", help="Allow connections to private networks."
     )
@@ -109,7 +111,9 @@ def create_parser() -> argparse.ArgumentParser:
 
     # 3. CONFIG Subcommand
     config_parser = subparsers.add_parser("config", help="Manage configuration profiles.")
-    config_subparsers = config_parser.add_subparsers(dest="subcommand", help="Configuration subcommands")
+    config_subparsers = config_parser.add_subparsers(
+        dest="subcommand", help="Configuration subcommands"
+    )
 
     config_subparsers.add_parser("show", help="Show current merged configuration parameters.")
 
@@ -220,15 +224,16 @@ async def handle_scan(args: argparse.Namespace, config: AppConfig) -> int:
         for target in targets:
             logger.info(f"Scanning target page: {target.url}")
             for plugin in active_plugins:
-                is_third_party = not str(
-                    Path(plugin.__class__.__module__).resolve()
-                ).startswith(str(Path(__file__).parent.parent.resolve()))
+                is_third_party = not str(Path(plugin.__class__.__module__).resolve()).startswith(
+                    str(Path(__file__).parent.parent.resolve())
+                )
 
                 use_sandbox = config.core.sandbox_plugins and is_third_party
 
                 try:
                     if use_sandbox:
                         from webpulse.core.sandbox import SubprocessSandboxWorker
+
                         plugin_module = sys.modules[plugin.__class__.__module__]
                         assert plugin_module.__file__ is not None
                         plugin_dir = Path(plugin_module.__file__).parent
@@ -243,9 +248,7 @@ async def handle_scan(args: argparse.Namespace, config: AppConfig) -> int:
                         pf = await plugin.execute(target, client)
                         findings.extend(pf)
                 except Exception as e:
-                    logger.error(
-                        f"Plugin '{plugin.metadata.name}' failed on '{target.url}': {e}"
-                    )
+                    logger.error(f"Plugin '{plugin.metadata.name}' failed on '{target.url}': {e}")
 
         # 5. Generate metrics and scores
         duration = time.time() - start_time
@@ -506,7 +509,7 @@ def main() -> None:
         if args.max_pages is not None:
             config.crawler.max_pages = args.max_pages
         if args.sandbox_plugins:
-            config.core.sandbox_plugins = (args.sandbox_plugins == "true")
+            config.core.sandbox_plugins = args.sandbox_plugins == "true"
 
         if args.auth_config is not None:
             try:
@@ -519,6 +522,7 @@ def main() -> None:
                     else:
                         auth_data = json.load(f) or {}
                 from webpulse.core.config import AuthConfig
+
                 config.auth = AuthConfig.model_validate(auth_data)
             except Exception:
                 sys.exit(1)
